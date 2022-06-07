@@ -25,7 +25,7 @@ def predict(json,*args,**kwargs):
             self.probab = np.cumsum(np.cumprod(self.gen.p.T, axis=1), axis=1)
             self.time_series = np.multiply(self.gen.r.T, self.feat.s.reshape(-1, 1))
 
-        def fill(self):
+        def fill(self,*args,**kwargs):
             for i in np.arange(self.feat.data.shape[0]):
                 self.results.loc[i, 'time_series'] = self.time_series[i]
                 self.results.loc[i, 'probab'] = self.probab[i]
