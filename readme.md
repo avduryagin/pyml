@@ -3,7 +3,7 @@
 
 ## Создание и активация venv
 1. py -3.8 -m venv .venv
-2. Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+2. Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 3. .\\.venv\Scripts\activate
 
  ## Установить пакеты
