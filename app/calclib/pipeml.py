@@ -58,8 +58,7 @@ def predict(json,*args,**kwargs):
          "l_remont_before_avar": 'Длина ремонта до аварии'})
 
 
-    #data=pd.read_json(json,orient='split',dtype=dtype)
-    data=pd.DataFrame(data=json, dtype=dtype)
+    data=pd.read_json(json,orient='split',dtype=dtype)
     data.rename(columns=to_rename,inplace=True)
     model=predictor()
     if data.shape[0]>0:
