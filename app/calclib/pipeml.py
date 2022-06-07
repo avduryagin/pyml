@@ -38,7 +38,8 @@ def predict(json,*args,**kwargs):
             delta = self.data.loc[index, 'a'].values
             self.results.loc[:, ['lbound', 'rbound']] = np.add(
                 rfn.structured_to_unstructured(self.feat.data[['a', 'b']]).reshape(-1, 2), delta.reshape(-1, 1))
-            self.json = self.results.to_json(orient='records')
+            self.diction=self.results.to_dict(*args,**kwargs)
+            #self.json = self.results.to_json(orient='records')
 
     dtype = {'id_simple_sector': np.int32, 'd': np.float32, 'l': np.float32, 's': np.float32,
               'date_input': np.datetime64, 'status': object, 'status_date_bezd': np.datetime64,
@@ -65,7 +66,7 @@ def predict(json,*args,**kwargs):
         model.fit(data,mode='bw')
         model.predict()
         model.fill()
-    return model.json
+    return model.diction
 
 
 
