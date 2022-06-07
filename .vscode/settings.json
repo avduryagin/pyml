@@ -1,25 +1,7 @@
 {
     "files.exclude": {
         "**/.idea": true,
-        "**/.venv": true
+        "**/.venv": true,
+        "**/app/__pycache__": true
     },
-    "python.pythonPath": "./.venv/Scripts/python.exe",
-    "terminal.integrated.profiles.windows": {
-        "PowerShell": {
-            "source": "PowerShell",
-            "icon": "terminal-powershell",
-            "args": ["-ExecutionPolicy", "Bypass"]
-        },
-        "Command Prompt": {
-            "path": [
-                "${env:windir}\\Sysnative\\cmd.exe",
-                "${env:windir}\\System32\\cmd.exe"
-            ],
-            "args": [],
-            "icon": "terminal-cmd"
-        },
-        "Git Bash": {
-            "source": "Git Bash"
-        }
-    }
 }
