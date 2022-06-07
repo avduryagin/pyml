@@ -27,8 +27,8 @@ def predict(json,*args,**kwargs):
 
         def fill(self,*args,**kwargs):
             for i in np.arange(self.feat.data.shape[0]):
-                self.results.loc[i, 'time_series'] = self.time_series[i]
-                self.results.loc[i, 'probab'] = self.probab[i]
+                self.results.loc[i, 'time_series'] = self.time_series[i].tolist()
+                self.results.loc[i, 'probab'] = self.probab[i].tolist()
             self.results.loc[:, 'predicted'] = self.predicted
             self.results.loc[:, 'interval'] = self.feat.data['interval'].reshape(-1).astype(np.int32)
             index = self.feat.data['index'].reshape(-1)
@@ -65,7 +65,7 @@ def predict(json,*args,**kwargs):
     if data.shape[0]>0:
         model.fit(data,mode='bw')
         model.predict()
-        model.fill()
+        model.fill(*args,**kwargs)
     return model.diction
 
 
