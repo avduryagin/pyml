@@ -1,6 +1,7 @@
+from flask import request
 from app import app
 from app.calclib import pipeml
-from flask_restful import Api, Resource, reqparse
+from flask_restful import Api, Resource
 
 
 api = Api(app)
@@ -10,9 +11,8 @@ class Calculation(Resource):
         self.models=pipeml
 
     def post(self,*args,**kwargs):
-        parser = reqparse.RequestParser()
-        data = parser.parse_args()
-        res=self.models.predict(data)
+        x = request.json["data"]
+        res=self.models.predict(x)
         return res
 
 api.add_resource(Calculation, "/calc/")

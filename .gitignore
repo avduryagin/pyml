@@ -6,3 +6,4 @@
 /logs/
 /.vs/
 /app/__pycache__
+/app/calclib/__pycache__

@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import MinMaxScaler
 from numpy.lib import recfunctions as rfn
-from calculation import generator as gen, sets_methods as sm, metrics
+from app.calclib import generator as gen, sets_methods as sm, metrics
 
 
 class repairs_map:
