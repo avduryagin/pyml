@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from numpy.lib import recfunctions as rfn
 
-def predict(json,*args,**kwargs):
+def predict(json,get='dict',*args,**kwargs):
     class predictor:
 
         def __init__(self, *args, **kwargs):
@@ -58,15 +58,24 @@ def predict(json,*args,**kwargs):
          "date_rem_before_avar": 'Дата ремонта до аварии', "locate_remont_avar": 'Адрес ремонта до аварии',
          "l_remont_before_avar": 'Длина ремонта до аварии'})
 
-
-    data=pd.read_json(json,orient='split',dtype=dtype)
-    data.rename(columns=to_rename,inplace=True)
+    if type(json) is pd.core.frame.DataFrame:
+        #для тестирования алгоритмов
+        data = json
+    else:
+        data = pd.read_json(json, orient='split', dtype=dtype)
+        data.rename(columns=to_rename, inplace=True, copy=False)
+    data._is_copy = False
+    #data=pd.read_json(json,orient='split',dtype=dtype)
+    #data.rename(columns=to_rename,inplace=True)
     model=predictor()
     if data.shape[0]>0:
-        model.fit(data,mode='bw')
+        model.fit(data,mode='bw',ident='ID простого участка')
         model.predict()
         model.fill()
-    return model.diction
+    if get=='dict':
+        return model.diction
+    else:
+        return model.results
 
 
 

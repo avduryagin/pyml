@@ -145,9 +145,6 @@ class linear_transform:
         return y
 
 
-
-
-
 def mean_approach(*args,**kwargs):
     k=0
     s=0.
@@ -162,3 +159,94 @@ def mean_approach(*args,**kwargs):
         return s
 
     return value
+
+def cover(x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0):
+    #c1-номер столбца, определяющего направление покрытия
+    #c0 -номер столбца, который покрывается интервалами
+    def split(bounds,x=np.array([]).reshape(-1,2),index=np.array([],dtype=np.int32),size=100,lbound=0,rbound=100,c1=1,c0=0):
+        if index.shape[0]==0:
+            return
+        i=index[0]
+        cx=x[i,c0]
+        a,b=get_interval(teta=size, current_point=cx,lbound=lbound, rbound=rbound, expand=False)
+        lbounds=(lbound,a)
+        rbounds=(b,rbound)
+        lmask=x[index,c0]<a
+        rmask=x[index,c0]>b
+        lindex=index[lmask]
+        rindex=index[rmask]
+        bounds.append(np.array([i,a,b]))
+        #print(np.array([i,a,b]),cx,llength,rlength)
+        split(bounds,x,lindex,size=size,lbound=lbounds[0],rbound=lbounds[1],c1=c1,c0=c0)
+        split(bounds,x,rindex, size=size, lbound=rbounds[0],rbound=rbounds[1], c1=c1, c0=c0)
+    #mask=x[:,c0]<=length
+    #x=x[mask]
+    def get_bounds(x=np.array([]).reshape(-1,2),index=np.array([],dtype=np.int32),size=100,lbound=0,rbound=100):
+        values=[]
+        for i in index:
+            try:
+                cx = x[i, c0]
+                a, b = get_interval(teta=size, current_point=cx, lbound=lbound, rbound=rbound, expand=False)
+                values.append([i,a,b])
+            except IndexError: continue
+        return np.array(values)
+
+    if (mode=='bw')|(mode=='fw'):
+        sa=np.argsort(x[:,c1])
+        if mode=='bw':
+            sa=np.flip(sa)
+        bounds=[]
+        split(bounds,x,index=sa,size=size,rbound=length,c1=c1,c0=c0)
+        return np.array(bounds)
+    elif mode=='reverse':
+        index=np.arange(-x.shape[0],0)
+    else:
+        index=np.arange(x.shape[0])
+    return get_bounds(x,index,size=size,rbound=length)
+
+def get_interval(teta=100, k=1, current_point=0, lbound=0,rbound=100, expand=True, intervals=np.array([]).reshape(-1, 2)):
+    # if current_point>lenght: return None
+    teta = np.abs(teta)
+    k = np.abs(k)
+    a = current_point - k * teta
+    b = current_point + k * teta
+    if (a < lbound) & (b > rbound):
+        a = lbound
+        b = rbound
+    if expand:
+        if (a < lbound) & (b <= rbound):
+            b = b - a
+            a = lbound
+            if b > rbound:
+                b = rbound
+        if (a >= lbound) & (b > rbound):
+            a = a - (b - rbound)
+            b = rbound
+            if a < lbound:
+                a = lbound
+    else:
+        if (a < lbound) & (b <= rbound):
+            a = lbound
+            b = b
+        if (a >= lbound) & (b > rbound):
+            a = a
+            b = rbound
+    # print(a,' ',b)
+    if intervals.shape[0] > 0:
+        for i in np.arange(intervals.shape[0]):
+            x = intervals[i, 0]
+            y = intervals[i, 1]
+
+            mask1 = x <= a <= y
+            mask2 = x <= b <= y
+            if mask1 & mask2:
+                a = current_point
+                b = a
+                return a, b
+            if mask1:
+                a = y
+            if mask2:
+                b = x
+
+    return a, b
+

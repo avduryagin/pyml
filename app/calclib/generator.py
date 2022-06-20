@@ -154,7 +154,7 @@ class Generator:
             q.append(self.set_values(i, t[j], shape[j]))
             j = j + 1
         shape = shape + 1
-        return y, np.array(q), shape
+        return y, np.array(q,dtype=object), shape
 
     def set_values(self, x=np.array([]), t=np.array([]), shape=np.array(1)):
         tau = x[self.col['tau']]

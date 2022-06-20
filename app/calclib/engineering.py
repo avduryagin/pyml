@@ -284,14 +284,20 @@ def inscribing(data,*args,afield ='Наработка до отказа',xfield 
     if split is None:
         split = {'delta': 3}
 
-    data.loc[:,'repair_date'] = np.nan
-    data.loc[:,'repair_length'] = np.nan
-    data.loc[:,'repair_address'] = np.nan
-    data.loc[:,'repair_index'] = np.nan
-    data.loc[:,'comment'] = np.nan
-    data.loc[:,'cluster']=np.nan
-    data.loc[:,'a'] = np.nan
-    data.loc[:,'b'] = np.nan
+    new_columns=['repair_date','repair_length','repair_address','repair_index','comment','cluster','a','b']
+    n=data.columns.shape[0]
+    for c in new_columns:
+        data.insert(n,c,np.nan)
+        n+=1
+
+    #data.loc[:,'repair_date'] = np.nan
+    #data.loc[:,'repair_length'] = np.nan
+    #data.loc[:,'repair_address'] = np.nan
+    #data.loc[:,'repair_index'] = np.nan
+    #data.loc[:,'comment'] = np.nan
+    #data.loc[:,'cluster']=np.nan
+    #data.loc[:,'a'] = np.nan
+    #data.loc[:,'b'] = np.nan
 
 
     for arg in args:
@@ -317,6 +323,7 @@ def inscribing(data,*args,afield ='Наработка до отказа',xfield 
         set_clusters(data,index,epsilon=cluster['epsilon'],r=cluster['r'],length=cluster['length'],xfield=xfield,afield=afield,lfield=lfield)
         set_repairs_by_clustering(data,index,delta=repairs['delta'],afield=afield,xfield=xfield,dfield=dfield)
         get_splited_by_repairs(data,index,ID=group,delta=split['delta'],xfield=xfield,dfield=dfield,efield=efield,stfield=stfield,outfield=outfield)
+        #set_cover(data,c0=xfield,c1=afield,af='lbound',bf='rbound')
 
     data.loc[:,'L,м']=data['b']-data['a']
     data.loc[:,'Адрес от начала участка (new)']=data[xfield]-data['a']
@@ -324,6 +331,8 @@ def inscribing(data,*args,afield ='Наработка до отказа',xfield 
     data.loc[:,'getout'] = (data['Дата перевода в бездействие'] - data['Дата ввода']) / np.timedelta64(1, 'Y')
     data.loc[:,'to_out'] = (data['Дата перевода в бездействие'] - data['Дата аварии']) / np.timedelta64(1, 'Y')
     data.loc[:,'index']=data.index
+
+
 
 
 def set_repairs_by_clustering(data=pd.DataFrame([]),index=np.array([],dtype=np.int32), delta=1,afield ='Наработка до отказа',xfield ='Адрес от начала участка',dfield='Дата аварии'):
@@ -475,7 +484,7 @@ class features:
         self.ClRe=gen.ClRe()
         self.s=np.array([])
 
-    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100,150],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='reverse'):
+    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='reverse'):
         self.ident=ident
         self.expand=expand
         self.ints=ints
@@ -506,7 +515,7 @@ class features:
 
 
 
-    def get_binary(self,xdata,columns,ident='new_id', expand=False, ints=np.array([100]), date=np.array([3]), steps=15, epsilon=1/12.,mode='reverse'):
+    def get_binary(self,xdata,columns,ident='ID простого участка',sortby='Наработка до отказа', expand=False, ints=np.array([100]), date=np.array([3]), steps=15, epsilon=1/12.,mode='bw'):
         #mode - тип индексации
         def get_identity(data, date=1, a=0, b=1, index=-1, interval=100, steps=15, epsilon=1/12.):
 
@@ -689,126 +698,51 @@ class features:
             return identity, data[:, 0][xmask].astype(float)
             # return identity, sparsed
 
-        tilde = 0
-        xdata.sort_values(by='Наработка до отказа(new), лет', inplace=True)
+        xdata.sort_values(by=sortby, inplace=True)
+
         aggdata = xdata.groupby(ident)
         npints = np.array(ints) * 2
         L = []
+
         for i, group in enumerate(aggdata):
-            length = group[1]['L,м'].iloc[0]
-            mask = npints <= length
-            n = mask[mask == True].shape[0]
-            data = group[1][columns].values
-
-            if n > 0:
-
+            Length = group[1]['L'].iloc[0]
+            data = group[1][['Адрес от начала участка','Наработка до отказа']].values
+            mask = npints <= Length
+            k = mask[mask == True].shape[0]
+            if k>0:
                 for teta in ints:
-                    if teta * 2 <= length:
-                        val=self.cover(data,mode=mode,length=length,size=teta,c0=1,c1=0)
-                        for v in val:
-                            j=int(v[0])
-                            a=v[1]
-                            b=v[2]
-                            for d in date:
-                                tensor, time = get_identity(data, date=d, a=a, b=b, index=j,
-                                                            interval=teta, epsilon=epsilon, steps=steps)
-                                if tensor is not None:
-                                    L.append((tensor, time))
-                                else:
-                                    print('empty id', group[0])
+                    val=sm.cover(data,mode=mode,length=Length,size=teta,c0=0,c1=1)
+                    index=group[1].index[val[:,0].astype(np.int32)]
+                    subgroups=group[1].groupby('new_id')
+                    uniques=np.unique(group[1].loc[index]['new_id'].values)
 
-        return np.array(L)
+                    for ID in uniques:
+                        subgroup=subgroups.groups[ID]
+                        #length,x=group[1].iloc[i][['L,м','Адрес от начала участка']]
+                        length=group[1].loc[subgroup[0],'L,м']
+                        mask = npints <= length
+                        n = mask[mask == True].shape[0]
+                        if n>0:
+                            subindex=np.where(np.isin(subgroup,index))[0]
+                            sub=group[1].loc[subgroup,columns].values
 
-    def get_interval(self, teta=100, k=1, current_point=0, lbound=0,rbound=100, expand=True, intervals=np.array([]).reshape(-1, 2)):
-        # if current_point>lenght: return None
-        teta = np.abs(teta)
-        k = np.abs(k)
-        a = current_point - k * teta
-        b = current_point + k * teta
-        if (a < lbound) & (b > rbound):
-            a = lbound
-            b = rbound
-        if expand:
-            if (a < lbound) & (b <= rbound):
-                b = b - a
-                a = lbound
-                if b > rbound:
-                    b = rbound
-            if (a >= lbound) & (b > rbound):
-                a = a - (b - rbound)
-                b = rbound
-                if a < lbound:
-                    a = lbound
-        else:
-            if (a < lbound) & (b <= rbound):
-                a = lbound
-                b = b
-            if (a >= lbound) & (b > rbound):
-                a = a
-                b = rbound
-        # print(a,' ',b)
-        if intervals.shape[0] > 0:
-            for i in np.arange(intervals.shape[0]):
-                x = intervals[i, 0]
-                y = intervals[i, 1]
+                            for j in subindex:
+                                s=subgroup[j]
+                                v=index.get_loc(s)
+                                x=group[1].loc[s,'a']
+                                if teta * 2 <= length:
+                                    a_,b_=val[v][[1,2]]-x
+                                    bound=sm.interseption((a_,b_),(0,length),shape=2).reshape(-1)
+                                    if bound[1]-bound[0]>=teta:
+                                        for d in date:
+                                            tensor, time = get_identity(sub, date=d, a=bound[0], b=bound[1], index=j,
+                                                                        interval=teta, epsilon=epsilon, steps=steps)
+                                            if tensor is not None:
+                                                L.append((tensor, time))
+                                            else:
+                                                print('empty id', group[0])
 
-                mask1 = x <= a <= y
-                mask2 = x <= b <= y
-                if mask1 & mask2:
-                    a = current_point
-                    b = a
-                    return a, b
-                if mask1:
-                    a = y
-                if mask2:
-                    b = x
-
-        return a, b
-
-    def cover(self,x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0):
-        #c1-номер столбца, определяющего направление покрытия
-        #c2 -номер столбца, который покрывается интервалами
-        def split(bounds,x=np.array([]).reshape(-1,2),index=np.array([],dtype=np.int32),size=100,lbound=0,rbound=100,c1=1,c0=0):
-            if index.shape[0]==0:
-                return
-            i=index[0]
-            cx=x[i,c0]
-            a,b=self.get_interval(teta=size, current_point=cx,lbound=lbound, rbound=rbound, expand=False)
-            lbounds=(lbound,a)
-            rbounds=(b,rbound)
-            lmask=x[index,c0]<a
-            rmask=x[index,c0]>b
-            lindex=index[lmask]
-            rindex=index[rmask]
-            bounds.append(np.array([i,a,b]))
-            #print(np.array([i,a,b]),cx,llength,rlength)
-            split(bounds,x,lindex,size=size,lbound=lbounds[0],rbound=lbounds[1],c1=c1,c0=c0)
-            split(bounds,x,rindex, size=size, lbound=rbounds[0],rbound=rbounds[1], c1=c1, c0=c0)
-        #mask=x[:,c0]<=length
-        #x=x[mask]
-        def get_bounds(x=np.array([]).reshape(-1,2),index=np.array([],dtype=np.int32),size=100,lbound=0,rbound=100):
-            values=[]
-            for i in index:
-                try:
-                    cx = x[i, c0]
-                    a, b = self.get_interval(teta=size, current_point=cx, lbound=lbound, rbound=rbound, expand=False)
-                    values.append([i,a,b])
-                except IndexError: continue
-            return np.array(values)
-
-        if (mode=='bw')|(mode=='fw'):
-            sa=np.argsort(x[:,c1])
-            if mode=='bw':
-                sa=np.flip(sa)
-            bounds=[]
-            split(bounds,x,index=sa,size=size,rbound=length,c1=c1,c0=c0)
-            return np.array(bounds)
-        elif mode=='reverse':
-            index=np.arange(-x.shape[0],0)
-        else:
-            index=np.arange(x.shape[0])
-        return get_bounds(x,index,size=size,rbound=length)
-
+        return np.array(L,dtype=object)
 
 
 
