@@ -80,7 +80,13 @@ class Generator:
                                 t=np.array([], dtype=float), s=np.array([], dtype=float),
                                 shape=np.array([], dtype=int)),
                    top=np.array([], dtype=float), stop=10):
+
         self.x = x
+        if self.x.c.shape[0]==0:
+            self.proba=np.array([],dtype=np.float32)
+            self.p = np.array([], dtype=np.float32)
+            self.r = np.array([], dtype=np.float32)
+            return self.proba
         self.top = top
         self.gindices = self.x.indices
         self.mask = np.ones(self.x.indices.shape[0], dtype=bool)
@@ -100,6 +106,10 @@ class Generator:
 
             y, pred_mask, probab = self.get_next(x=self.x, top=self.top)
             if y is None:
+                r.append(cr)
+                p.append(cp)
+                self.p = np.array(p, dtype=np.float32)
+                self.r = np.array(r, dtype=np.float32)
                 return self.proba
 
             self.mask = (y.r[:, -1] <= self.top[pred_mask])
@@ -133,8 +143,8 @@ class Generator:
             self.indices = self.indices[pred_mask]
             i = i + 1
 
-        self.p = np.array(p)
-        self.r=np.array(r)
+        self.p =np.array(p,dtype=np.float32)
+        self.r=np.array(r,dtype=np.float32)
         return self.proba
 
     def get_new(self, x=np.array([]), tau=np.array([]), t=np.array([]), shape=np.array([])):

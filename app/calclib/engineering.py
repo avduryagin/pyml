@@ -41,7 +41,6 @@ def get_repairs_map(REP, k):
         Y = sm.get_sets_residual(L, X)
         return Y
 
-
 def get_unical_repairs(data, dfield='repair_date',lfield='repair_length',afield='repair_address', scale=0,values=False):
     group = data[dfield].value_counts().keys()
     repairs = set()
@@ -90,8 +89,6 @@ def get_raw_repairs(data, scale=0,values=False, rdfield='Дата окончан
                     ub=up+ul
                     repair=(up,ub,u,ul)
                     repairs.append(repair)
-
-
 
     if values:
         if len(repairs)>0:
@@ -333,8 +330,6 @@ def inscribing(data,*args,afield ='Наработка до отказа',xfield 
     data.loc[:,'index']=data.index
 
 
-
-
 def set_repairs_by_clustering(data=pd.DataFrame([]),index=np.array([],dtype=np.int32), delta=1,afield ='Наработка до отказа',xfield ='Адрес от начала участка',dfield='Дата аварии'):
 
     def get_cluster_shape(cluster,afield ='Наработка до отказа',xfield ='Адрес от начала участка',dfield='Дата аварии'):
@@ -465,6 +460,77 @@ def length_approach(data=pd.DataFrame([]), index=np.array([],dtype=np.int32),xfi
     data.loc[index, afield] = 0
     data.loc[index, bfield] = data.loc[index, xfield]
 
+
+
+
+class restrictions:
+    def __init__(self):
+        self.valid_indices=np.array([])
+        self.map=np.array([])
+        self.body=np.array([0,np.inf,0])
+        self.valid_mask=np.array([],dtype=bool)
+        self.cover=np.array([])
+
+    def fit(self,x=np.array([]),rep=np.array([]),enter=np.datetime64('1978-01-01'),length=100,scale=2,mode='bw',size=100):
+
+        def get_rep_cover(data, enter=np.datetime64('1978-01-01'), length=100, scale=2):
+            bottom = np.array([0, length, 0])
+            repairs_ = get_raw_repairs(data, scale=scale, values=True)
+            if repairs_.shape[0] == 0:
+                return bottom.reshape(-1, 3)
+            repairs = get_repairs_map(repairs_, repairs_.shape[0] - 1)
+            dtau = repairs[:, 2] - np.array(enter)
+            tau = []
+            for tau_ in dtau:
+                tau.append(tau_ / np.timedelta64(1, 'Y'))
+            tau = np.array(tau,dtype=np.float32).reshape(-1, 1)
+            repairs_ = np.hstack((repairs[:, [0, 1]], tau))
+            repairs_ = np.vstack((repairs_, bottom))
+            djs = sm.get_disjoint_sets(repairs_, shape=3).astype(np.float32)
+            return djs
+
+        def set_valid_indices(data=np.array([[0, 0]]), restr=np.array([[0, np.inf, 0]])):
+            def split(data=np.array([[0, 0]]), restr=np.array([[0, np.inf, 0]]), index=np.array([]),
+                      indices=np.array([]), i=0):
+                if i >= restr.shape[0]:
+                    return
+                a = restr[i, 0]
+                b = restr[i, 1]
+                d = restr[i, 2]
+                mask = np.where((data[index, 0] >= a) & (data[index, 0] <= b) & (data[index, 1] >= d))[0]
+                indices[index[mask]] = i
+                index = np.delete(index, mask)
+                i += 1
+                split(data=data, restr=restr, index=index, indices=indices, i=i)
+
+            indices = np.ones(shape=data.shape[0], dtype=np.int32) * -1
+            index = np.arange(indices.shape[0])
+            split(data=data, restr=restr, index=index, indices=indices, i=0)
+            return indices
+
+        def get(i=0):
+            try:
+                j=self.valid_indices[i]
+                return self.map[j]
+            except IndexError:
+                return self.body
+
+        def get_cover():
+            self.cover=sm.cover(x[self.valid_mask],mode=mode,length=length,size=size,restrict=get)
+            i=self.cover['i']
+            ix=np.arange(x.shape[0])
+            self.cover['i']=ix[self.valid_mask][i]
+
+        self.body[1]=length
+        self.map=get_rep_cover(data=rep,enter=enter,scale=scale,length=length)
+        self.valid_indices=set_valid_indices(data=x,restr=self.map)
+        self.valid_mask=~(self.valid_indices<0)
+        self.valid_indices=self.valid_indices[self.valid_mask]
+        get_cover()
+
+
+
+
 class features:
     def __init__(self):
         self.data=np.array([])
@@ -483,8 +549,9 @@ class features:
         self.reg_features=[]
         self.ClRe=gen.ClRe()
         self.s=np.array([])
+        self.horizon = np.array([])
 
-    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='reverse'):
+    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='bw',restricts=True):
         self.ident=ident
         self.expand=expand
         self.ints=ints
@@ -493,29 +560,31 @@ class features:
         self.epsilon=epsilon
         self.raw=xdata
         self.reg_features = [str(x) for x in np.arange(self.steps)]
-        data=self.get_binary(self.raw,self.columns,date=self.date, ident=self.ident,expand=self.expand,ints=self.ints,steps=self.steps,epsilon=self.epsilon,mode=mode)
-        self.data=np.vstack(data[:,0])
-        self.cl=rfn.structured_to_unstructured(self.data[self.cl_features],dtype=np.float32).reshape(-1,len(self.cl_features))
-        self.reg = rfn.structured_to_unstructured(self.data[self.reg_features], dtype=np.float32).reshape(-1,len(self.reg_features))
-        self.time_series = data[:, 1]
-        self.s=self.data['s'].reshape(-1)
-        self.top=self.data['top'].reshape(-1)
-        self.shape = self.data['shape'].reshape(-1)
-        self.horizon =self.data['horizon'].reshape(-1)
-        self.features=self.data.dtype.names
-        if norm:
-            self.top=self.top/self.s
-            self.horizon=self.horizon/self.s
-            self.reg = np.divide(self.reg,self.s.reshape(-1,1))
+        data=self.get_binary(self.raw,self.columns,date=self.date, ident=self.ident,expand=self.expand,ints=self.ints,steps=self.steps,epsilon=self.epsilon,mode=mode,restricts=restricts)
+        if len(data)>0:
+            self.data=np.vstack(data[0])
+            self.cl=rfn.structured_to_unstructured(self.data[self.cl_features],dtype=np.float32).reshape(-1,len(self.cl_features))
+            self.reg = rfn.structured_to_unstructured(self.data[self.reg_features], dtype=np.float32).reshape(-1,len(self.reg_features))
+            #self.time_series = data[:, 1]
+            self.time_series = np.array(data[1],dtype=object)
+            self.s=self.data['s'].reshape(-1)
+            self.top=self.data['top'].reshape(-1)
+            self.shape = self.data['shape'].reshape(-1)
+            self.horizon =self.data['horizon'].reshape(-1)
+            self.features=self.data.dtype.names
+            if norm:
+                self.top=self.top/self.s
+                self.horizon=self.horizon/self.s
+                self.reg = np.divide(self.reg,self.s.reshape(-1,1))
 
-        self.ClRe = gen.ClRe(c=self.cl, r=self.reg, s=self.s, t=self.time_series, shape=self.shape)
-
-
-
-
+            self.ClRe = gen.ClRe(c=self.cl, r=self.reg, s=self.s, t=self.time_series, shape=self.shape)
 
 
-    def get_binary(self,xdata,columns,ident='ID простого участка',sortby='Наработка до отказа', expand=False, ints=np.array([100]), date=np.array([3]), steps=15, epsilon=1/12.,mode='bw'):
+
+
+
+
+    def get_binary(self,xdata,columns,ident='ID простого участка',sortby='Наработка до отказа', expand=False, ints=np.array([100]), date=np.array([3]), steps=15, epsilon=1/12.,mode='bw',restricts=True):
         #mode - тип индексации
         def get_identity(data, date=1, a=0, b=1, index=-1, interval=100, steps=15, epsilon=1/12.):
 
@@ -695,11 +764,14 @@ class features:
 
             identity['target'] = target
             identity['count'] = count
-            return identity, data[:, 0][xmask].astype(float)
+            ts=data[:, 0][xmask].astype(float)
+            return identity,ts
             # return identity, sparsed
 
-        xdata.sort_values(by=sortby, inplace=True)
 
+
+
+        xdata.sort_values(by=sortby, inplace=True)
         aggdata = xdata.groupby(ident)
         npints = np.array(ints) * 2
         L = []
@@ -711,8 +783,13 @@ class features:
             k = mask[mask == True].shape[0]
             if k>0:
                 for teta in ints:
-                    val=sm.cover(data,mode=mode,length=Length,size=teta,c0=0,c1=1)
-                    index=group[1].index[val[:,0].astype(np.int32)]
+                    if restricts:
+                        restr=restrictions()
+                        restr.fit(x=data,rep=group[1],enter=group[1]['Дата ввода'].min(),size=teta,length=Length,mode=mode)
+                        val=restr.cover
+                    else:
+                        val=sm.cover(data,mode=mode,length=Length,size=teta,c0=0,c1=1)
+                    index=group[1].index[val['i']]
                     subgroups=group[1].groupby('new_id')
                     uniques=np.unique(group[1].loc[index]['new_id'].values)
 
@@ -731,18 +808,24 @@ class features:
                                 v=index.get_loc(s)
                                 x=group[1].loc[s,'a']
                                 if teta * 2 <= length:
-                                    a_,b_=val[v][[1,2]]-x
+                                    a_=val['a'][v]-x
+                                    b_=val['b'][v]-x
+                                    #a_,b_=val[v][[1,2]]-x
                                     bound=sm.interseption((a_,b_),(0,length),shape=2).reshape(-1)
-                                    if bound[1]-bound[0]>=teta:
-                                        for d in date:
-                                            tensor, time = get_identity(sub, date=d, a=bound[0], b=bound[1], index=j,
-                                                                        interval=teta, epsilon=epsilon, steps=steps)
-                                            if tensor is not None:
-                                                L.append((tensor, time))
-                                            else:
-                                                print('empty id', group[0])
+                                    if bound.shape[0]>0:
+                                        if bound[1]-bound[0]>=teta:
+                                            for d in date:
+                                                tensor,ts = get_identity(sub, date=d, a=bound[0], b=bound[1], index=j,
+                                                                            interval=teta, epsilon=epsilon, steps=steps)
+                                                if tensor is not None:
+                                                    L.append((tensor,ts))
+                                                else:
+                                                    print('empty id', group[0])
 
-        return np.array(L,dtype=object)
+        transpose=[list(x) for x in zip(*L)]
+        return transpose
+
+
 
 
 

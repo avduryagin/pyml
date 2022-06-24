@@ -160,22 +160,26 @@ def mean_approach(*args,**kwargs):
 
     return value
 
-def cover(x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0):
+def cover(x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0,cr=2, restrict=None):
     #c1-номер столбца, определяющего направление покрытия
     #c0 -номер столбца, который покрывается интервалами
-    def split(bounds,x=np.array([]).reshape(-1,2),index=np.array([],dtype=np.int32),size=100,lbound=0,rbound=100,c1=1,c0=0):
+    def split(bounds,x=np.array([]).reshape(-1,2),index=np.array([],dtype=np.int32),size=100,lbound=0,rbound=100,c1=1,c0=0,cr=2):
         if index.shape[0]==0:
             return
         i=index[0]
         cx=x[i,c0]
-        a,b=get_interval(teta=size, current_point=cx,lbound=lbound, rbound=rbound, expand=False)
+        y = restrict(i)
+        #print(y)
+        its=interseption(np.array([lbound,rbound]),y,shape=2).reshape(-1)
+        #print(y,np.array([lbound,rbound]),its)
+        a,b=get_interval(teta=size, current_point=cx,lbound=its[0], rbound=its[1], expand=False)
         lbounds=(lbound,a)
         rbounds=(b,rbound)
         lmask=x[index,c0]<a
         rmask=x[index,c0]>b
         lindex=index[lmask]
         rindex=index[rmask]
-        bounds.append(np.array([i,a,b]))
+        bounds.append((indices[i],a,b))
         #print(np.array([i,a,b]),cx,llength,rlength)
         split(bounds,x,lindex,size=size,lbound=lbounds[0],rbound=lbounds[1],c1=c1,c0=c0)
         split(bounds,x,rindex, size=size, lbound=rbounds[0],rbound=rbounds[1], c1=c1, c0=c0)
@@ -186,18 +190,29 @@ def cover(x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0):
         for i in index:
             try:
                 cx = x[i, c0]
-                a, b = get_interval(teta=size, current_point=cx, lbound=lbound, rbound=rbound, expand=False)
-                values.append([i,a,b])
+                #j = int(x[i, cr])
+                y = restrict(i)
+                its = interseption(np.array([lbound, rbound]), y, shape=2).reshape(-1)
+                a, b = get_interval(teta=size, current_point=cx, lbound=its[0], rbound=its[1], expand=False)
+                values.append((i,a,b))
             except IndexError: continue
-        return np.array(values)
+        return np.array(values,dtype=[('i',np.int32),('a',np.float32),('b',np.float32)])
+    def get(i=0):
+        return re
+
+    if restrict is None:
+        re=np.array([0,length])
+        restrict=get
 
     if (mode=='bw')|(mode=='fw'):
         sa=np.argsort(x[:,c1])
+        indices = np.arange(x.shape[0])
+
         if mode=='bw':
             sa=np.flip(sa)
         bounds=[]
         split(bounds,x,index=sa,size=size,rbound=length,c1=c1,c0=c0)
-        return np.array(bounds)
+        return np.array(bounds,dtype=[('i',np.int32),('a',np.float32),('b',np.float32)])
     elif mode=='reverse':
         index=np.arange(-x.shape[0],0)
     else:
@@ -249,4 +264,12 @@ def get_interval(teta=100, k=1, current_point=0, lbound=0,rbound=100, expand=Tru
                 b = x
 
     return a, b
+
+def get_unique_sets(x=np.array([],dtype=np.float32).reshape(-1,2)):
+    mask=np.isnan(x[:,0])
+    x=x[~mask]
+    return np.unique(x,axis=0)
+
+
+
 

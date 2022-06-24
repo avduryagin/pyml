@@ -4,6 +4,7 @@ import numpy as np
 from numpy.lib import recfunctions as rfn
 
 def predict(json,get='dict',*args,**kwargs):
+
     class predictor:
 
         def __init__(self, *args, **kwargs):
@@ -14,6 +15,9 @@ def predict(json,get='dict',*args,**kwargs):
             self.columns = ['id_simple_sector', 'locate_simple_sector', 'worl_avar_first',
                             'interval', 'predicted', 'time_series', 'probab', 'lbound', 'rbound']
             self.results = pd.DataFrame([], columns=self.columns)
+            self.diction = {x:np.nan for x in self.columns}
+            self.probab=np.array([])
+            self.time_series=np.array([])
 
         def fit(self, data, *args, **kwargs):
             self.data = data
@@ -22,10 +26,13 @@ def predict(json,get='dict',*args,**kwargs):
 
         def predict(self):
             self.predicted = self.gen.predict(self.feat.ClRe, self.feat.horizon)
-            self.probab = np.cumsum(np.cumprod(self.gen.p.T, axis=1), axis=1)
-            self.time_series = np.multiply(self.gen.r.T, self.feat.s.reshape(-1, 1))
+            if self.gen.p.shape[0]>0:
+                self.probab = np.cumsum(np.cumprod(self.gen.p.T, axis=1), axis=1)
+                self.time_series = np.multiply(self.gen.r.T, self.feat.s.reshape(-1, 1))
 
         def fill(self,*args,**kwargs):
+            if self.predicted.shape[0]==0:
+                return
             for i in np.arange(self.feat.data.shape[0]):
                 self.results.loc[i, 'time_series'] = self.time_series[i].tolist()
                 self.results.loc[i, 'probab'] = self.probab[i].tolist()
@@ -69,7 +76,7 @@ def predict(json,get='dict',*args,**kwargs):
     #data.rename(columns=to_rename,inplace=True)
     model=predictor()
     if data.shape[0]>0:
-        model.fit(data,mode='bw',ident='ID простого участка')
+        model.fit(data,mode='bw',ident='ID простого участка',restricts=True)
         model.predict()
         model.fill()
     if get=='dict':
