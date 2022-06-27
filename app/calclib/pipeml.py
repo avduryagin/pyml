@@ -15,7 +15,7 @@ def predict(json,get='dict',*args,**kwargs):
             self.columns = ['id_simple_sector', 'locate_simple_sector', 'worl_avar_first',
                             'interval', 'predicted', 'time_series', 'probab', 'lbound', 'rbound']
             self.results = pd.DataFrame([], columns=self.columns)
-            self.diction = {x:np.nan for x in self.columns}
+            self.diction = [{x:np.nan for x in self.columns}]
             self.probab=np.array([])
             self.time_series=np.array([])
 
