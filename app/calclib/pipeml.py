@@ -1,6 +1,7 @@
 from app.calclib import engineering as en, generator as gn
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from numpy.lib import recfunctions as rfn
 
 def predict(json,get='dict',*args,**kwargs):
@@ -76,7 +77,8 @@ def predict(json,get='dict',*args,**kwargs):
     #data.rename(columns=to_rename,inplace=True)
     model=predictor()
     if data.shape[0]>0:
-        model.fit(data,mode='bw',ident='ID простого участка',restricts=True)
+        today=datetime.now()
+        model.fit(data,mode='bw',ident='ID простого участка',restricts=True,today=today)
         model.predict()
         model.fill()
     if get=='dict':
