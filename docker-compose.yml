@@ -1,8 +1,8 @@
 version: '3.4'
 
 services:
-  pyservice:
-    image: int-ois-docker.asuproject.ru/pyservice${imagetag-}
+  ois-ml-calccrashpipe:
+    image: int-ois-docker.asuproject.ru/ml/ois.ml.calccrashpipe${imagetag-}
     restart: always
     build:
       context: .
