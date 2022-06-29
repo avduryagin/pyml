@@ -13,7 +13,7 @@ except:
 
 def run():
     logger.info("App start")
-    serve(app, host="127.0.0.1", port=port, threads=4)  # WAITRESS!
+    serve(app, host="0.0.0.0", port=port, threads=4)  # WAITRESS!
 
 if __name__ == '__main__':
     run()

@@ -1,0 +1,11 @@
+version: '3.4'
+
+services:
+  pyservice:
+    image: int-ois-docker.asuproject.ru/pyservice${imagetag-}
+    restart: always
+    build:
+      context: .
+    ports:
+      - 5000:5000
+      
