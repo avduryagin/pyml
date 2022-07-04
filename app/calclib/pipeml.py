@@ -1,7 +1,7 @@
 from app.calclib import engineering as en, generator as gn
 import pandas as pd
 import numpy as np
-from datetime import datetime
+
 from numpy.lib import recfunctions as rfn
 
 def predict(json,get='dict',*args,**kwargs):
@@ -11,7 +11,8 @@ def predict(json,get='dict',*args,**kwargs):
         def __init__(self, *args, **kwargs):
             self.data = pd.DataFrame([])
             self.feat = en.features()
-            self.gen = gn.Generator()
+            #regmodel = 'rfreg_test.sav', clmodel = 'rfc_test.sav'
+            self.gen = gn.Generator(regmodel = 'rfreg_test_v1.sav', clmodel = 'rfc_test_v1.sav')
             # self.columns=["ID простого участка","Адрес от начала участка","Наработка до отказа","interval","predicted","time_series","probab"]
             self.columns = ['id_simple_sector', 'locate_simple_sector', 'worl_avar_first',
                             'interval', 'predicted', 'time_series', 'probab', 'lbound', 'rbound']
@@ -77,8 +78,7 @@ def predict(json,get='dict',*args,**kwargs):
     #data.rename(columns=to_rename,inplace=True)
     model=predictor()
     if data.shape[0]>0:
-        today=datetime.now()
-        model.fit(data,mode='bw',ident='ID простого участка',restricts=True,today=today)
+        model.fit(data,mode='bw',ident='ID простого участка',restricts=True)
         model.predict()
         model.fill()
     if get=='dict':

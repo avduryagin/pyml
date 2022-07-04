@@ -4,7 +4,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import MinMaxScaler
 from numpy.lib import recfunctions as rfn
 from app.calclib import generator as gen, sets_methods as sm, metrics
-
+from datetime import datetime
 
 class repairs_map:
     def __init__(self):
@@ -238,8 +238,10 @@ def inscribing(data,*args,afield ='Наработка до отказа',xfield 
                stfield='Состояние',outfield='Дата перевода в бездействие',rdfield='Дата окончания ремонта',
                rxfield='Адрес от начала участка_1',rlfield='Длина ремонтируемого участка',
                bdfield='Дата ремонта до аварии',bxfield='Адрес ремонта до аварии',blfield='Длина ремонта до аварии',
-               cluster=None, repairs=None,split=None,today=np.datetime64('2021-01-29'),**kwargs):
-
+               cluster=None, repairs=None,split=None,today=None,**kwargs):
+    #today = np.datetime64('2021-01-29')
+    if today is None:
+        today = datetime.now()
     #Поле в data:
     #afield ='Наработка до отказа'
     #xfield ='Адрес от начала участка'
@@ -266,6 +268,7 @@ def inscribing(data,*args,afield ='Наработка до отказа',xfield 
                #'Адрес от начала участка', 'Обводненность', 'Дата окончания ремонта',
                #'Адрес от начала участка_1', 'Длина ремонтируемого участка', 'Дата ремонта до аварии',
                #'Адрес ремонта до аварии', 'Длина ремонта до аварии']
+
 
     def fill_wtp(data):
         data[wfield].fillna(0.,inplace=True)
@@ -551,7 +554,7 @@ class features:
         self.s=np.array([])
         self.horizon = np.array([])
 
-    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='bw',restricts=True):
+    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='bw',restricts=True,**kwargs):
         self.ident=ident
         self.expand=expand
         self.ints=ints
