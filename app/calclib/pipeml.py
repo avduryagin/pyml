@@ -12,7 +12,7 @@ def predict(json,get='dict',*args,**kwargs):
             self.data = pd.DataFrame([])
             self.feat = en.features()
             #regmodel = 'rfreg_test.sav', clmodel = 'rfc_test.sav'
-            self.gen = gn.Generator(regmodel = 'rfreg_test_v1.sav', clmodel = 'rfc_test_v1.sav')
+            self.gen = gn.Generator()
             # self.columns=["ID простого участка","Адрес от начала участка","Наработка до отказа","interval","predicted","time_series","probab"]
             self.columns = ['id_simple_sector', 'locate_simple_sector', 'worl_avar_first',
                             'interval', 'predicted', 'time_series', 'probab', 'lbound', 'rbound']
