@@ -554,7 +554,8 @@ class features:
         self.s=np.array([])
         self.horizon = np.array([])
 
-    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32), date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='bw',restricts=True,**kwargs):
+    def fit(self,xdata=pd.DataFrame([]),ident='new_id', expand=False, ints=np.array([100],dtype=np.int32),
+            date=np.array([3],dtype=np.int32), steps=15, epsilon=1/12.,norm=True,mode='bw',restricts=True,drift=0.,**kwargs):
         self.ident=ident
         self.expand=expand
         self.ints=ints
@@ -563,7 +564,9 @@ class features:
         self.epsilon=epsilon
         self.raw=xdata
         self.reg_features = [str(x) for x in np.arange(self.steps)]
-        data=self.get_binary(self.raw,self.columns,date=self.date, ident=self.ident,expand=self.expand,ints=self.ints,steps=self.steps,epsilon=self.epsilon,mode=mode,restricts=restricts)
+        #создание точек
+        data=self.get_binary(self.raw,self.columns,date=self.date, ident=self.ident,expand=self.expand,ints=self.ints,steps=self.steps,epsilon=self.epsilon,mode=mode,restricts=restricts,drift=drift)
+
         if len(data)>0:
             self.data=np.vstack(data[0])
             self.cl=rfn.structured_to_unstructured(self.data[self.cl_features],dtype=np.float32).reshape(-1,len(self.cl_features))
@@ -587,7 +590,7 @@ class features:
 
 
 
-    def get_binary(self,xdata,columns,ident='ID простого участка',sortby='Наработка до отказа', expand=False, ints=np.array([100]), date=np.array([3]), steps=15, epsilon=1/12.,mode='bw',restricts=True):
+    def get_binary(self,xdata,columns,ident='ID простого участка',sortby='Наработка до отказа', expand=False, ints=np.array([100]), date=np.array([3]), steps=15, epsilon=1/12.,mode='bw',restricts=True,drift=0.):
         #mode - тип индексации
         def get_identity(data, date=1, a=0, b=1, index=-1, interval=100, steps=15, epsilon=1/12.):
 
@@ -623,6 +626,7 @@ class features:
                 if (x is not None) & ~(x == np.array(l[-1])):
                     l.append(x)
                 return np.array(l)
+
 
             def get_horizontal_counts(data=np.array([]), interval=100, L=100):
                 mask = np.ones(data.shape[0], dtype=bool)
@@ -689,8 +693,15 @@ class features:
             identity['top'] = min(tau+date,tau+to_out)
             identity['horizon']=tau+date
 
+            mtau=masked(index)
             mask = data[:, 0] <= tau
-            identity['shape'] = mask[mask == True].shape[0]
+            hormask = mask
+            if mtau>tau:
+                hormask = data[:, 0] <= mtau
+
+
+
+            identity['shape'] = hormask[hormask == True].shape[0]
             mask1 = (data[:, 1] >= a) & (data[:, 1] <= b)
             xmask = mask1 & mask
             ads = xmask[xmask == True].shape[0]
@@ -715,7 +726,7 @@ class features:
                 substep = data[:, 0] >= tau - step[k]
                 smask = substep & xmask
                 identity[k] = smask[smask == True].shape[0]
-            ivls = get_horizontal_counts(data[:, 1][mask], interval=interval, L=length)
+            ivls = get_horizontal_counts(data[:, 1][hormask], interval=interval, L=length)
             res = ivls[:, 1] - ivls[:, 0]
             identity['percent'] = res.sum() / length
             w_mean = data[:, 2][mask].mean()
@@ -782,8 +793,8 @@ class features:
         for i, group in enumerate(aggdata):
             Length = group[1]['L'].iloc[0]
             data = group[1][['Адрес от начала участка','Наработка до отказа']].values
-            mask = npints <= Length
-            k = mask[mask == True].shape[0]
+            mask = np.where(npints <= Length)[0]
+            k = mask.shape[0]
             if k>0:
                 for teta in ints:
                     if restricts:
@@ -800,11 +811,17 @@ class features:
                         subgroup=subgroups.groups[ID]
                         #length,x=group[1].iloc[i][['L,м','Адрес от начала участка']]
                         length=group[1].loc[subgroup[0],'L,м']
-                        mask = npints <= length
-                        n = mask[mask == True].shape[0]
+                        mask= np.where(npints <= length)[0]
+                        n = mask.shape[0]
                         if n>0:
                             subindex=np.where(np.isin(subgroup,index))[0]
+                            #sub - x,tau координаты ID
                             sub=group[1].loc[subgroup,columns].values
+                            #максимальное значение возраста аварии
+                            taumax=sub[:,0].max()
+                            low=taumax*(1-drift)
+                            drift_mask=sub[:,0]>=low
+                            masked=sm.masked(sub[:,0],drift_mask,taumax)
 
                             for j in subindex:
                                 s=subgroup[j]

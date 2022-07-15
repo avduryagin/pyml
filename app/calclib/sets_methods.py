@@ -271,5 +271,15 @@ def get_unique_sets(x=np.array([],dtype=np.float32).reshape(-1,2)):
     return np.unique(x,axis=0)
 
 
+def masked(x=np.array([]),mask=np.array([],dtype=bool),val=0.):
+    def get(index):
+        try:
+            if mask[index]:
+                return val
+            else:
+                return x[index]
+        except(IndexError):
+            return val
+    return get
 
 

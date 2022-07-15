@@ -4,7 +4,7 @@ import numpy as np
 
 from numpy.lib import recfunctions as rfn
 
-def predict(json,get='dict',*args,**kwargs):
+def predict(json,get='dict',drift=0.,*args,**kwargs):
 
     class predictor:
 
@@ -78,7 +78,7 @@ def predict(json,get='dict',*args,**kwargs):
     #data.rename(columns=to_rename,inplace=True)
     model=predictor()
     if data.shape[0]>0:
-        model.fit(data,mode='bw',ident='ID простого участка',restricts=True)
+        model.fit(data,mode='bw',ident='ID простого участка',restricts=True,drift=drift)
         model.predict()
         model.fill()
     if get=='dict':
