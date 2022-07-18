@@ -71,7 +71,10 @@ def predict(json,get='dict',drift=0.,*args,**kwargs):
         #для тестирования алгоритмов
         data = json
     else:
-        data = pd.read_json(json, orient='split', dtype=dtype)
+        #data = pd.read_json(json, orient='split', dtype=dtype)
+        data=pd.DataFrame(json)
+        for ty in dtype.keys():
+            data[ty]=data[ty].astype(dtype[ty])
         data.rename(columns=to_rename, inplace=True, copy=False)
     data._is_copy = False
     #data=pd.read_json(json,orient='split',dtype=dtype)

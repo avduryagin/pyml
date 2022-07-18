@@ -13,7 +13,9 @@ class Calculation(Resource):
 
     def post(self,*args,**kwargs):
         x = json.dumps(request.json)
-        res=self.models.predict(x)
+        data=x['data']
+        args=x['kwargs']
+        res=self.models.predict(data,drift=args['drift'])
         return res
 
 api.add_resource(Calculation, "/calc/")
