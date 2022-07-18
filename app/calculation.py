@@ -14,12 +14,13 @@ class Calculation(Resource):
     def post(self,*args,**kwargs):
         #x = json.dumps(request.json)
         x=json.loads(request.json)
+        data = x['data']
         try:
-            data=x['data']
+
             args=x['kwargs']
             res = self.models.predict(data, drift=args['drift'])
         except(KeyError):
-            res = self.models.predict(x)
+            res = self.models.predict(data)
 
 
         return res
