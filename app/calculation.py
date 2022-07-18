@@ -13,7 +13,7 @@ class Calculation(Resource):
 
     def post(self,*args,**kwargs):
         #x = json.dumps(request.json)
-        x=json.loads(request.json)
+        x=request.json
         data = x['data']
         try:
 
