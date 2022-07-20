@@ -4,15 +4,15 @@ import numpy as np
 
 from numpy.lib import recfunctions as rfn
 
-def predict(json,get='dict',drift=0.,*args,**kwargs):
+def predict(json,*args,get='dict',drift=0.,clmodel='rfc_100_150_2.sav',regmodel="rfreg_100_150_2.sav",colfile='col.npy',epsilon=1/12.,**kwargs):
 
     class predictor:
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args, clmodel='rfc.sav',regmodel = 'rfreg.sav',colfile='col.npy',**kwargs):
             self.data = pd.DataFrame([])
             self.feat = en.features()
             #regmodel = 'rfreg_test.sav', clmodel = 'rfc_test.sav'
-            self.gen = gn.Generator()
+            self.gen = gn.Generator(clmodel=clmodel,regmodel=regmodel, colfile=colfile)
             # self.columns=["ID простого участка","Адрес от начала участка","Наработка до отказа","interval","predicted","time_series","probab"]
             self.columns = ['id_simple_sector', 'locate_simple_sector', 'worl_avar_first',
                             'interval', 'predicted', 'time_series', 'probab', 'lbound', 'rbound']
@@ -79,9 +79,9 @@ def predict(json,get='dict',drift=0.,*args,**kwargs):
     data._is_copy = False
     #data=pd.read_json(json,orient='split',dtype=dtype)
     #data.rename(columns=to_rename,inplace=True)
-    model=predictor()
+    model=predictor(clmodel=clmodel,regmodel=regmodel,colfile=colfile)
     if data.shape[0]>0:
-        model.fit(data,mode='bw',ident='ID простого участка',restricts=True,drift=drift)
+        model.fit(data,mode='bw',ident='ID простого участка',restricts=True,drift=drift,epsilon=epsilon)
         model.predict()
         model.fill()
     if get=='dict':
