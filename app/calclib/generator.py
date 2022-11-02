@@ -27,6 +27,7 @@ class Generator:
         #print('path ',os.path.dirname(os.path.abspath(__file__)))
         if path is None:
             path=os.path.join(os.path.dirname(os.path.abspath(__file__)),modelfolder)
+            self.path=path
             #path=os.path.join(os.getcwd(),modelfolder)
         if regressor is not None:
             self.regressor=regressor

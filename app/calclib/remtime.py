@@ -47,7 +47,7 @@ class rtd:
             tau=0
         return tau
 
-def predict(data,kargs,*args,**kwargs)->np.float32:
+def predict(data,*args,**kwargs)->np.float32:
     measurements = np.array(data['measurements'], dtype=np.float32)
     s = np.array(data['s'], dtype=np.float32)
     s0 = np.array(data['s0'], dtype=np.float32)
