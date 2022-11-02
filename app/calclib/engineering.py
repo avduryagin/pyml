@@ -116,7 +116,7 @@ def get_merged_repairs(true, synthetic, epsilon=0.5,values=False):
             if delta > epsilon:
                 res = split_repairs(true[1:], synt.reshape(-1, 3), epsilon=epsilon)
             else:
-                ispt = sm.interseption(r, synt)
+                ispt = sm.intersection(r, synt)
                 if ispt.shape[0] > 0:
                     residual = sm.get_sets_residual(synt.reshape(-1, 3), r)[:-1]
                     # print(residual)
@@ -193,7 +193,7 @@ def get_splited_by_repairs(data, index=np.array([],dtype=np.int32),ID='',delta=3
         if i > 0:
             A=rmap.rmap[i - 1]
             #A = get_repairs_map(rep, i - 1)
-            T = sm.get_sets_residual(A, X.reshape(3), f=sm.interseption)[:-1]
+            T = sm.get_sets_residual(A, X.reshape(3), f=sm.intersection)[:-1]
             for t in T:
                 submask = (repgroup[dfield] >= t[2]) & ((repgroup[xfield] <= t[1]) & (
                             repgroup[xfield] >= t[0]))
@@ -831,7 +831,7 @@ class features:
                                     a_=val['a'][v]-x
                                     b_=val['b'][v]-x
                                     #a_,b_=val[v][[1,2]]-x
-                                    bound=sm.interseption((a_,b_),(0,length),shape=2).reshape(-1)
+                                    bound=sm.intersection((a_, b_), (0, length), shape=2).reshape(-1)
                                     if bound.shape[0]>0:
                                         if bound[1]-bound[0]>=teta:
                                             for d in date:

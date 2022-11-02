@@ -1,6 +1,6 @@
 import numpy as np
 
-def interseption(C, D,shape=3):
+def intersection(C, D, shape=3):
     if shape==3:
         A = np.array(C)
         X = np.array(D)
@@ -41,7 +41,7 @@ def merge(A=np.array([]),B=np.array([]),shape=2):
     if (B[0] < A[1]) & (A[0] == B[1]):
         return np.array([B[0], A[1]])
 
-    isp=interseption(A,B,shape=2)
+    isp=intersection(A, B, shape=2)
     if isp.shape[0]>0:
         if A[0]<B[0]:
             return np.array([A[0],B[1]])
@@ -170,7 +170,7 @@ def cover(x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0,c
         cx=x[i,c0]
         y = restrict(i)
         #print(y)
-        its=interseption(np.array([lbound,rbound]),y,shape=2).reshape(-1)
+        its=intersection(np.array([lbound, rbound]), y, shape=2).reshape(-1)
         #print(y,np.array([lbound,rbound]),its)
         a,b=get_interval(teta=size, current_point=cx,lbound=its[0], rbound=its[1], expand=False)
         lbounds=(lbound,a)
@@ -192,7 +192,7 @@ def cover(x=np.array([]).reshape(-1,2),mode='bw',length=100,size=100,c1=1,c0=0,c
                 cx = x[i, c0]
                 #j = int(x[i, cr])
                 y = restrict(i)
-                its = interseption(np.array([lbound, rbound]), y, shape=2).reshape(-1)
+                its = intersection(np.array([lbound, rbound]), y, shape=2).reshape(-1)
                 a, b = get_interval(teta=size, current_point=cx, lbound=its[0], rbound=its[1], expand=False)
                 values.append((i,a,b))
             except IndexError: continue
