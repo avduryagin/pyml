@@ -653,18 +653,18 @@ def predict(data,*args,**kwargs)->np.float32:
         model=rtd()
         model.fit(measurements=measurements,t=t,s=s,s0=s0)
         condtau=model.value()
-        results["probab_rtime"]=condtau
+        results["probab_rtime"]=float(condtau)
         val = model.get_time(s_=sestimated, tol=tol,q=q,z=z,m=m,ds=ds)
         tau=val['x']
-        results["predicted_rtime"]=tau
+        results["predicted_rtime"]=float(tau)
         tech = techstate()
         width = tech.concatinate(width)
         tech.fit(width=width, time=time, s0=s0, s=s, tfirst=tfirst)
         vcorr,vcorr_mean,vcorr_fact,vcorr_max=tech.get_values()
-        results["vcorr_by_meas"]=vcorr
-        results["vcorr_mean"] = vcorr_mean
-        results["vcorr_mean_fact"] = vcorr_fact
-        results["vcorr_max"] = vcorr_max
+        results["vcorr_by_meas"]=float(vcorr)
+        results["vcorr_mean"] = float(vcorr_mean)
+        results["vcorr_mean_fact"] = float(vcorr_fact)
+        results["vcorr_max"] = float(vcorr_max)
 
     except AssertionError as error:
         results['log']=error.args[0]
