@@ -670,8 +670,8 @@ def predict(data,*args,**kwargs)->np.float32:
         results['log']=error.args[0]
 
 
-    #tojs=results
-    tojs = json.dumps(results, default=to_serializable)
+    tojs=results
+    #tojs = json.dumps(results, default=to_serializable)
 
 
     return tojs
