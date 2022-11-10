@@ -167,7 +167,7 @@ class pipe_parameters:
 
     @c_h2s.setter
     def c_h2s(self,value:np.float32):
-        assert value>=0 and value<=1 and isinstance(value,(np.float32,float,np.float64,np.ndarray)),"Доля сероводорода задана некорректно "
+        assert value>=0 and isinstance(value,(np.float32,float,np.float64,np.ndarray)),"Доля сероводорода задана некорректно "
         self._c_h2s = value
 
     @c_h2s.deleter
