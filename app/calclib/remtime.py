@@ -354,6 +354,9 @@ class rtd:
         self.mean=0.
         self.smin=4.
         self.measurements=np.array([])
+        self.logcounter=0
+        self.log=""
+        self.error=""
 
 
     def fit(self,measurements=np.array([]),t=1.,s=8.,s0=4.):
@@ -371,6 +374,7 @@ class rtd:
         assert s0 > 0, "Задана нулевая или отрицательная отбраковочная толщина стенки "
         self.t=t
         self.s=s
+        self.s0 = s0
 
 
     def value(self)->np.float32:
@@ -391,15 +395,36 @@ class rtd:
         if tau<0:
             tau=0
         return tau
+    def addtolog(self,msg):
+        self.logcounter+=1
+        self.log=self.log+'\n'+str(self.logcounter)+". "+msg
 
     def predict(self,s_=8.,ds=0.04,m=0.05,q=0.99,z=100):
 
-        assert (self.measurements.size >= 4), "Задано недотаточное для выполнения расчетов количество измерений"
+
+
         assert s_>=0,"Задана нулевая или отрицательная расчетная толщина стенки"
         assert ds > 0, "Задано отрицательое относительное начальное (технологическое) среднеквадратическое отклонение стенки"
         assert m >= 0, "Задана отрицательное число допустимых отказавших элементов в год на 1 км длины "
         assert z >= 0, "Задана отрицательное число элементов трубопровода на 1 км"
         assert (q >= 0) and (q<1), "Задана некоректная доверительная вероятность. Значение должно быть положительным меньше 1. "
+
+        reqsize=0
+
+
+        if ((self.measurements.size < 50)&(q>0.95)):
+            reqsize=50
+            msg = "Задано недостаточное для выполнения расчетов количество " \
+                  " измерений ({0:.0f}) при доверительной вероятности {1:.2f}. Рекомендованное количество не менее {2:.0f}.".format(self.measurements.size, q,reqsize)
+            self.addtolog(msg)
+        if ((self.measurements.size < 25) & (q <= 0.95)):
+            reqsize = 25
+            msg = "Задано недостаточное для выполнения расчетов количество " \
+                  " измерений ({0:.0f}) при доверительной вероятности {1:.2f}. Рекомендованное количество не менее {2:.0f}.".format(self.measurements.size, q,reqsize)
+            self.addtolog(msg)
+
+        #assert (self.measurements.size >= 50)&(q<=0.99)&(q>0.95), msg
+        #assert (self.measurements.size >= 25) & (q <= 0.95) , msg
 
 
         n=self.measurements.size
@@ -413,12 +438,17 @@ class rtd:
         self.quantile=norm.ppf(q)
         self.maxsq2=(self.su*(1+self.quantile/(np.power(2*n-8,0.5))))**2
         self.delta=self.dmean+self.quantile*(self.su/np.power(n-2,0.5))
+        if self.maxsq2<self.ds2:
+            msg="Результаты измерений недостаточного качества для расчетов с заданной достоверностью."
+            self.addtolog(msg)
+            self.maxsq2=self.ds2
+
         self.sk2=(self.maxsq2-self.ds2)/(self.t**2)
         self.dr=1-self.s_/self.s
         self.r=self.delta/self.t
         self.dtau=self.dr-self.delta
         self.epsilon=self.m/self.z
-        self.args=[]
+        #self.args=[]
 
 
         def value(i=0)->np.float32:
@@ -431,7 +461,7 @@ class rtd:
             y2=np.power(self.sk2*i3+self.ds2,0.5)
             w1=x1/y1
             w2=x2/y2
-            self.args.append([w1,w2])
+            #self.args.append([w1,w2])
             #print(w1)
             #print(w2)
             return np.abs(self.epsilon-(norm.cdf(w1)-norm.cdf(w2)))
@@ -643,6 +673,8 @@ def predict(data,*args,**kwargs)->np.float32:
     # соотнесенные с массивом time.
 
     #undersampling = np.array(kargs['undersampling'], dtype=bool)
+    warnings="Warnings: "
+    errors="Errors:"
 
     results=dict({"probab_rtime":0,"vcorr_by_meas":0,"vcorr_mean":0,"vcorr_mean_fact":0,"vcorr_max":0,"predicted_rtime":0,"log":""})
     try:
@@ -653,6 +685,7 @@ def predict(data,*args,**kwargs)->np.float32:
         model=rtd()
         model.fit(measurements=measurements,t=t,s=s,s0=s0)
         condtau=model.value()
+
         results["probab_rtime"]=float(condtau)
         val = model.get_time(s_=sestimated, tol=tol,q=q,z=z,m=m,ds=ds)
         tau=val['x']
@@ -665,11 +698,13 @@ def predict(data,*args,**kwargs)->np.float32:
         results["vcorr_mean"] = float(vcorr_mean)
         results["vcorr_mean_fact"] = float(vcorr_fact)
         results["vcorr_max"] = float(vcorr_max)
+        warnings=warnings+'\n'+model.log
 
     except AssertionError as error:
-        results['log']=error.args[0]
+        errors+'\n'+str(error.args[0])
 
 
+    results['log'] = warnings+'\n'+'\n'+errors
     tojs=results
     #tojs = json.dumps(results, default=to_serializable)
 
