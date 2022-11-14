@@ -477,8 +477,26 @@ class rtd:
         return value
 
     def get_time(self,s_=8.,m=0.05,q=0.99,z=100,tol=1e-2):
+        def ksi(fun):
+            def value(x):
+                return 1./(fun(x)+1)
+            return value
+        def scaled(fun,scale=1000.):
+            def value(x):
+                return fun(x)*scale
+            return value
+
+
+
         fun=self.predict(s_=s_,m=m,q=q,z=z)
-        val=optim.minimize_scalar(fun,method='bounded',bounds=(0,30),tol=tol)
+        mfunc=scaled(fun)
+        func=ksi(mfunc)
+        b=50
+        bound=optim.minimize_scalar(func,method='bounded',bounds=(0,b),tol=tol)
+        if bound['success']:
+            b=bound['x']
+            #gprint('b',bound)
+        val=optim.minimize_scalar(mfunc,method='bounded',bounds=(0,b),tol=tol)
         assert val['success'],val['message']
         return val
 
