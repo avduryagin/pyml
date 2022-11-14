@@ -359,7 +359,7 @@ class rtd:
         self.error=""
 
 
-    def fit(self,measurements=np.array([]),t=1.,s=8.,s0=4.):
+    def fit(self,measurements=np.array([]),t=1.,s=8.,s0=4.,ds=0.04):
         if (measurements is not None) and type(measurements) is np.ndarray:
             nneg=np.where(measurements<0)[0]
             assert nneg.shape[0]==0,'Некоторые значения измерений заданы отрицательными'
@@ -372,9 +372,20 @@ class rtd:
         assert t>=0,"Задан отрицательный возраст трубопровода"
         assert s > 0, "Задана нулевая или отрицательная номинальная толщина стенки "
         assert s0 > 0, "Задана нулевая или отрицательная отбраковочная толщина стенки "
+        assert s > s0, "Задана отбраковочная толщина стенки болшьше или равная номинальной"
+        assert (ds >= 0)&(ds<1), "Заданное  начальное среднеквадратическое относительное отклонение {0:.3f} некорректно. " \
+                                 "Допустимы только положительные значения меньше единицы".format(ds)
+
+
         self.t=t
         self.s=s
         self.s0 = s0
+        self.ds=ds
+
+        assert self.mean <= self.s * (1 + ds), "Среднее значение толщины стенки {0:.2f} превышает допустимое {1:.2f}" \
+                                               " при заданном допуске {2:.3f}.".format(self.mean,self.s * (1 + ds),ds)
+        if self.mean>self.s:
+            self.s=self.mean
 
 
     def value(self)->np.float32:
@@ -399,17 +410,14 @@ class rtd:
         self.logcounter+=1
         self.log=self.log+'\n'+str(self.logcounter)+". "+msg
 
-    def predict(self,s_=8.,ds=0.04,m=0.05,q=0.99,z=100):
-
-
+    def predict(self,s_=8.,m=0.05,q=0.99,z=100):
 
         assert s_>=0,"Задана нулевая или отрицательная расчетная толщина стенки"
-        assert ds > 0, "Задано отрицательое относительное начальное (технологическое) среднеквадратическое отклонение стенки"
+        assert self.s >= s_, "Задана расчетная толщина стенки больше или равная номинальной"
         assert m >= 0, "Задана отрицательное число допустимых отказавших элементов в год на 1 км длины "
         assert z >= 0, "Задана отрицательное число элементов трубопровода на 1 км"
         assert (q >= 0) and (q<1), "Задана некоректная доверительная вероятность. Значение должно быть положительным меньше 1. "
 
-        reqsize=0
 
 
         if ((self.measurements.size < 50)&(q>0.95)):
@@ -432,7 +440,7 @@ class rtd:
         self.s_=s_
         self.q=q
         self.m=m
-        self.ds2=ds**2
+        self.ds2=self.ds**2
         self.dmean=1-self.mean/self.s
         self.su=self.sigma/self.s
         self.quantile=norm.ppf(q)
@@ -468,9 +476,10 @@ class rtd:
 
         return value
 
-    def get_time(self,s_=8.,ds=0.04,m=0.05,q=0.99,z=100,tol=1e-2):
-        fun=self.predict(s_=s_,ds=ds,m=m,q=q,z=z)
+    def get_time(self,s_=8.,m=0.05,q=0.99,z=100,tol=1e-2):
+        fun=self.predict(s_=s_,m=m,q=q,z=z)
         val=optim.minimize_scalar(fun,method='bounded',bounds=(0,30),tol=tol)
+        assert val['success'],val['message']
         return val
 
 
@@ -543,6 +552,7 @@ class techstate:
         assert tfirst>=0,"Задан отрицательный возраст первой аварии"
         assert s > 0, "Задана нулевая или отрицательная номинальная толщина стенки "
         assert s0 > 0, "Задана нулевая или отрицательная отбраковочная толщина стенки "
+        assert s>s0,"Задана отбраковочная толщина стенки болшьше или равная номинальной"
 
 
 
@@ -683,7 +693,7 @@ def predict(data,*args,**kwargs)->np.float32:
                    gas_percent=gas_percent, k=k)
         sestimated = properties.value()
         model=rtd()
-        model.fit(measurements=measurements,t=t,s=s,s0=s0)
+        model.fit(measurements=measurements,t=t,s=s,s0=s0,ds=ds)
         condtau=model.value()
 
         results["probab_rtime"]=float(condtau)
