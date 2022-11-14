@@ -697,7 +697,7 @@ def predict(data,*args,**kwargs)->np.float32:
         condtau=model.value()
 
         results["probab_rtime"]=float(condtau)
-        val = model.get_time(s_=sestimated, tol=tol,q=q,z=z,m=m,ds=ds)
+        val = model.get_time(s_=sestimated, tol=tol,q=q,z=z,m=m)
         tau=val['x']
         results["predicted_rtime"]=float(tau)
         tech = techstate()
