@@ -495,8 +495,9 @@ class rtd:
         bound=optim.minimize_scalar(func,method='bounded',bounds=(0,b),tol=tol)
         if bound['success']:
             b=bound['x']
-            #gprint('b',bound)
+            #print('b',b)
         val=optim.minimize_scalar(mfunc,method='bounded',bounds=(0,b),tol=tol)
+        val.update({'rbound':b})
         assert val['success'],val['message']
         return val
 
@@ -729,10 +730,12 @@ def predict(data,*args,**kwargs)->np.float32:
         warnings=warnings+'\n'+model.log
 
     except AssertionError as error:
-        errors+'\n'+str(error.args[0])
+        errors+='\n'+str(error.args[0])
+    finally:
+        results['log'] = warnings + '\n' + '\n' + errors
 
 
-    results['log'] = warnings+'\n'+'\n'+errors
+
     tojs=results
     #tojs = json.dumps(results, default=to_serializable)
 
