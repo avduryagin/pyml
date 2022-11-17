@@ -23,9 +23,10 @@ class Calculation(Resource):
                 self.models=remtime
                 res=self.models.predict(data,args)
 
-            res = self.models.predict(data, drift=args['drift'])
+            else:
+                res = self.models.predict(data, drift=args['drift'])
         except(KeyError):
-            res = self.models.predict(data)
+            res = self.models.predict(data, drift=args['drift'])
 
 
         return res
