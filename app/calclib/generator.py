@@ -80,7 +80,7 @@ class Generator:
     def predict(self, x=ClRe(c=np.array([], dtype=float), r=np.array([], dtype=float),
                                 t=np.array([], dtype=float), s=np.array([], dtype=float),
                                 shape=np.array([], dtype=int)),
-                   top=np.array([], dtype=float), stop=10):
+                   top=np.array([], dtype=float), stop=10,cutofftail=False):
 
         self.x = x
         if self.x.c.shape[0]==0:
@@ -113,16 +113,29 @@ class Generator:
                 self.r = np.array(r, dtype=np.float32)
                 return self.proba
 
-            self.mask = (y.r[:, -1] <= self.top[pred_mask])
-            pred_mask = pred_mask[self.mask]
-            index = self.indices[pred_mask]
+            #self.mask = (y.r[:, -1] <= self.top[pred_mask])
+            #pred_mask = pred_mask[self.mask]
+            #index = self.indices[pred_mask]
+            #print('i',i)
 
             if i == 1:
+                if cutofftail:
+                    self.mask = np.ones(y.r.shape[0], dtype=bool)
+                else:
+                    self.mask = (y.r[:, -1] <= self.top[pred_mask])
+                    pred_mask = pred_mask[self.mask]
+
+
+                index = self.indices[pred_mask]
+                #print('pedicted as 0',pred_mask.shape[0]-index.shape[0],'pedicted as 1',index.shape[0])
                 self.p0 = probab[pred_mask]
                 self.dt = probab[pred_mask]
                 self.proba[index]=probab[pred_mask]
 
             else:
+                self.mask = (y.r[:, -1] <= self.top[pred_mask])
+                pred_mask = pred_mask[self.mask]
+                index = self.indices[pred_mask]
                 p0 = self.p0[pred_mask]
                 dt = self.dt[pred_mask]
                 proba = p0 + dt * probab[pred_mask]

@@ -456,7 +456,7 @@ class rtd:
         self.r=self.delta/self.t
         self.dtau=self.dr-self.delta
         self.epsilon=self.m/self.z
-        #self.args=[]
+        self.args=[]
 
 
         def value(i=0)->np.float32:
@@ -469,7 +469,7 @@ class rtd:
             y2=np.power(self.sk2*i3+self.ds2,0.5)
             w1=x1/y1
             w2=x2/y2
-            #self.args.append([w1,w2])
+            self.args.append([w1,w2])
             #print(w1)
             #print(w2)
             return np.abs(self.epsilon-(norm.cdf(w1)-norm.cdf(w2)))
@@ -714,10 +714,11 @@ def predict(data,*args,**kwargs)->np.float32:
         model=rtd()
         model.fit(measurements=measurements,t=t,s=s,s0=s0,ds=ds)
         condtau=model.value()
-
         results["probab_rtime"]=float(condtau)
         val = model.get_time(s_=sestimated, tol=tol,q=q,z=z,m=m)
         tau=val['x']
+        warnings += '\n' + model.log
+
         results["predicted_rtime"]=float(tau)
         tech = techstate()
         width = tech.concatinate(width)
@@ -727,11 +728,13 @@ def predict(data,*args,**kwargs)->np.float32:
         results["vcorr_mean"] = float(vcorr_mean)
         results["vcorr_mean_fact"] = float(vcorr_fact)
         results["vcorr_max"] = float(vcorr_max)
-        warnings=warnings+'\n'+model.log
+        #warnings=warnings+'\n'+model.log
+
 
     except AssertionError as error:
         errors+='\n'+str(error.args[0])
     finally:
+
         results['log'] = warnings + '\n' + '\n' + errors
 
 

@@ -563,7 +563,8 @@ class features:
         self.steps=steps
         self.epsilon=epsilon
         self.raw=xdata
-        self.reg_features = [str(x) for x in np.arange(self.steps)]
+        if len(self.reg_features)==0:
+            self.reg_features = [str(x) for x in np.arange(self.steps)]
         #создание точек
         data=self.get_binary(self.raw,self.columns,date=self.date, ident=self.ident,expand=self.expand,ints=self.ints,steps=self.steps,epsilon=self.epsilon,mode=mode,restricts=restricts,drift=drift)
 

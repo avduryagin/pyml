@@ -1,4 +1,4 @@
-tests.py
+/app/calclib/tests.py
 /venv/
 /.venv/
 /build/
@@ -6,5 +6,6 @@ tests.py
 /packages/
 /logs/
 /.vs/
+/.idea/
 /app/__pycache__
 /app/calclib/__pycache__

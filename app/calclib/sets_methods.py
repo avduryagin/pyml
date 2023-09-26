@@ -283,3 +283,56 @@ def masked(x=np.array([]),mask=np.array([],dtype=bool),val=0.):
     return get
 
 
+def gef_filtered(x,y,count=5):
+    w1=[]
+    w2=[]
+    t=0
+    n=x.shape[0]
+    k=0
+    while k+count<n:
+        i0=k
+        t=y[k:k+count].max()
+        w1.append(x[i0])
+        w2.append(t)
+        k+=1
+    return np.array([w1,w2])
+
+def get_bounds(start=0.,end=np.inf,size=100.,constrains=np.array([])):
+    def value(x=0.):
+        a=x-size
+        b=x+size
+        if a<start:
+            a=start
+        if b>end:
+            b=end
+        if constrains.shape[0] > 0:
+            res=get_residual(np.array([a, b]),constrains,x=x)
+            if res.shape[0]>0:
+                a=res[0]
+                b=res[1]
+            else:
+                a=0
+                b=0
+
+        return a,b
+
+
+    return value
+
+def get_residual(A=np.array([]),B=np.array([]),x=None):
+    def get(A,x):
+        if x is None:
+            return A
+        for a in A:
+            if (a[0]<=x)&(a[1]>=x):
+                return a
+        return np.array([])
+    for s in B:
+        A=residual(A,s,shape=2).reshape(-1,2)
+        A=get(A,x)
+        if A.shape[0]==0:
+            return A
+
+    return A
+
+
