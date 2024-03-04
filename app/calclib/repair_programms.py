@@ -5,12 +5,16 @@ import pandas as pd
 import numpy as np
 
 class sbs:
-    def __init__(self,data,mask=None):
+    def __init__(self,data,mask=None,model=None,engine=None):
         self.columns=['Наработка до отказа','Адрес от начала участка','L',
          'Наработка до отказа(new), лет','Адрес от начала участка (new)','L,м','a']
         self.data=data
-        self.model=SVRGenerator()
-        self.engine=SVRsingle()
+        self.model=model
+        self.engine=engine
+        if self.model is None:
+            self.model=SVRGenerator()
+        if self.engine is None:
+            self.engine=SVRsingle()
         self.data._is_copy = False
 
 
@@ -54,8 +58,8 @@ class sbs:
             target=self.engine.data['target'][0]
             count = self.engine.data['count'][0]
             n_predicted = np.where(self.model.p > 0)[0].shape[0]
-            desicion=self.decision_func(predicted[0])
-            return np.array([desicion, a, b,count,target,predicted[0],n_predicted],dtype=np.float32)
+            decision=self.decision_func(predicted[0])
+            return np.array([decision, a, b,count,target,predicted[0],n_predicted],dtype=np.float32)
         else:
             return np.array([self.decision_func(predicted[0]),a,b],dtype=np.float32)
 
@@ -63,9 +67,9 @@ class sbs:
             self.cover.get_index(state=state)
 
 class pipe_cover:
-    def __init__(self,data,mask=None):
+    def __init__(self,data,mask=None,model=None,engine=None):
         self.data=data
-        self.model=sbs(data,mask)
+        self.model=sbs(data,mask,model=model,engine=engine)
         self.columns=['lbound','rbound','length','predicted','n_predicted','count','target',
                       'lost_mask','predicted_mask','single_mask','repairs_length','synthetic_length']
         self.rep_price = lambda x: 18 if x > 219 else 12
@@ -182,6 +186,20 @@ class pipe_cover:
         self.data.loc[:,['Ущерб предотвр. отказов, млн.руб.','Ущерб непредотвр. отказов, млн.руб.','Стоимость надежности, млн.руб.','Стоимость надежности']]=np.nan
         self.data.rename(columns={'length':"Длина сегмента, м","repairs_length":"Объемы Ремонта,м","synthetic_length":"Объемы Ремонта,м (восстановленные)",
                                   "n_predicted":"Число отказов","single_mask":"Первичный отказ","predicted_mask":"Предотвращенный отказ","lost_mask":"Пропущенный отказ"},inplace=True)
+        self.data.loc[:,'Первый отказ на трубопроводе']=0
+        i=self.data.loc[:,'Дата аварии'].argmin()
+        self.data.at[self.data.index[i],'Первый отказ на трубопроводе']=1
+        self.data.loc[:,'by']=np.nan
+        for i in self.data.index:
+            p = self.data.at[i, 'Число отказов']
+            if not (p > 0):
+                continue
+            a = self.data.at[i, 'lbound']
+            b = self.data.at[i, 'rbound']
+            t = self.data.at[i, 'Дата аварии']
+            mask = (self.data.loc[:, 'Адрес от начала участка'] >= a) & (self.data.loc[:, 'Адрес от начала участка'] <= b) & (
+                        self.data.loc[:, 'Дата аварии'] > t)
+            self.data.loc[mask,'by'] = i
 
 
 
